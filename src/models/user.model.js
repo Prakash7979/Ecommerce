@@ -2,13 +2,19 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const userReviewSchema = new Schema(
+const userSchema = new Schema(
   {
     username: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+      index: true,
+    },
+    fullname: {
+      type: String,
+      required: true,
       trim: true,
       index: true,
     },
@@ -19,54 +25,39 @@ const userReviewSchema = new Schema(
       lowecase: true,
       trim: true,
     },
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
-    avatar: {
-      type: String, // cloudinary url
-      required: true,
-    },
-    review: {
-      type: String,
-      required: true,
-    },
-    sentiment: {
-      type: String,
-      required: true,
-    },
-    aspect: {
-      type: String,
-      required: true,
-    },
     password: {
       type: String,
       required: [true, "Password is required"],
     },
-    refreshToken: {
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      zip: String,
+    },
+    phone: {
       type: String,
     },
+    role: {
+      type: String,
+      default: "customer",
+    },
   },
-
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-userReviewSchema.pre("save", async function (next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-userReviewSchema.methods.isPasswordCorrect = async function (password) {
+userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-userReviewSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -80,7 +71,7 @@ userReviewSchema.methods.generateAccessToken = function () {
     }
   );
 };
-userReviewSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -92,4 +83,4 @@ userReviewSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const UserReview = mongoose.model("UserReview", userReviewSchema);
+export const User = mongoose.model("User", userSchema);
