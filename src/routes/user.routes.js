@@ -1,17 +1,19 @@
 import { Router } from "express";
 import {
-  getTodos,
-  createTodo,
-  getTodoById,
-  updateTodo,
-  deleteTodo,
+  createUser,
+  deleteUser,
+  getAdmin,
+  getUser,
+  getUserById,
+  updateUser,
 } from "../controllers/user.controller.js";
 
 const router = Router();
 
 // Define specific routes before dynamic ones
-router.route("/create-todo").post(createTodo);
-router.route("/todos").get(getTodos);
-router.route("/:todoId").get(getTodoById).patch(updateTodo).delete(deleteTodo);
+router.route("/create-user").post(createUser);
+router.route("/users").get(getUser);
+router.route("/:userId").get(getUserById).patch(updateUser).delete(deleteUser);
+router.route("/Admin").get(getAdmin);
 
 export default router;
