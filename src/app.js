@@ -29,10 +29,10 @@ import adminRouter from "./routes/admin.routes.js";
 
 //routes declaration
 app.use("/api/v1/users", userRouter);
-app.use("/app/v1/product", productRouter);
-app.use("/api/v1/order", orderRouter);
-app.use("/api/v1/category", categoryRouter);
-app.use("/api/v1/cart", cartRouter);
-app.use("/api/v1/admin", adminRouter);
+app.use("/app/v1/products", productRouter);
+app.use("/api/v1/orders", orderRouter);
+app.use("/api/v1/categorys", categoryRouter);
+app.use("/api/v1/carts", cartRouter);
+app.use("/api/v1/admins", adminRouter);
 
 export { app };
