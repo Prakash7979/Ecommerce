@@ -1,4 +1,5 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
+const { Schema } = mongoose;
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
@@ -34,6 +35,10 @@ const userSchema = new Schema(
       city: String,
       state: String,
       zip: String,
+    },
+    avatar: {
+      type: String,
+      required: true,
     },
     phone: {
       type: String,

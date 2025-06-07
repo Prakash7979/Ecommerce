@@ -2,13 +2,33 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utilis/ApiError.js";
 import { ApiResponse } from "../utilis/ApiResponse.js";
 import { asyncHandler } from "../utilis/asyncHandler.js";
+import { uploadOnCloudinary } from "../utilis/cloudinary.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    if (!user) throw new ApiError(404, "User not found");
+
+    const accessToken = jwt.sign(
+      { _id: user._id },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: "15m", // Short-lived token
+      }
+    );
+
+    const refreshToken = jwt.sign(
+      { _id: user._id },
+      process.env.REFRESH_TOKEN_SECRET,
+      {
+        expiresIn: "7d", // Long-lived token
+      }
+    );
+
+    // const accessToken = user.generateAccessToken();
+    // const refreshToken = user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -32,17 +52,32 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   const existedUser = await User.findOne({
-    $or: [{ username }, { email }],
+    $or: [{ username: username.toLowerCase() }, { email }],
   });
 
   if (existedUser) {
     throw new ApiError(409, "User with email or username already exists");
   }
 
+  const avatarLocalPath = req.files?.avatar[0]?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is required");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  // if (!avatar) {
+  //   throw new ApiError(400, "Avatar file is required");
+  // }
+
+  if (!avatar || !avatar.url) {
+    throw new ApiError(500, "Error while uploading avatar to Cloudinary");
+  }
+
   const user = await User.create({
     fullName,
     avatar: avatar.url,
-    coverImage: coverImage?.url || "",
     email,
     password,
     username: username.toLowerCase(),
@@ -63,7 +98,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
-  console.log(email);
+  // console.log(email);
 
   if (!username && !email) {
     throw new ApiError(400, "username or email is required");
@@ -94,6 +129,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "Strict",
   };
 
   return res
@@ -135,6 +171,41 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"));
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is missing");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  // if (!avatar.url) {
+  //   throw new ApiError(400, "Error while uploading on avatar");
+  // }
+
+  if (!avatar || !avatar.url) {
+    throw new ApiError(500, "Error while uploading avatar to Cloudinary");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar image updated successfully"));
 });
 
 const getUser = async (req, res) => {
@@ -251,7 +322,7 @@ export {
   loginUser,
   registerUser,
   logoutUser,
-  generateAccessAndRefereshTokens,
+  updateUserAvatar,
   getUser,
   createUser,
   getUserById,
